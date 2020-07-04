@@ -52,40 +52,46 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void sendrequest(EditText user,EditText pass) throws JSONException {
-        JSONObject rem=new JSONObject();
+        Connectivity con =new Connectivity();
+        if(con.isConnected(this)) {
+            JSONObject rem = new JSONObject();
 //        rem.remove("status");
-        rem.put("username",user.getText());
-        rem.put("password",pass.getText());
-        Log.d("Param",rem.toString());
-        JsonObjectRequest req=new JsonObjectRequest(Request.Method.POST,urlJsonArry,rem,
-                new Response.Listener<JSONObject>(){
-                    @Override
-                    public void onResponse(JSONObject data){
-                        Log.d("response",data.toString());
-                        try {
-                            Log.d("response",data.get("id").toString());
-                        } catch (JSONException e) {
-                            e.printStackTrace();
+            rem.put("username", user.getText());
+            rem.put("password", pass.getText());
+            Log.d("Param", rem.toString());
+            JsonObjectRequest req = new JsonObjectRequest(Request.Method.POST, urlJsonArry, rem,
+                    new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(JSONObject data) {
+                            Log.d("response", data.toString());
+                            try {
+                                Log.d("response", data.get("id").toString());
+                                //if id=='-1' error function
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            }
+                            FileOutputStream fileout = null;
+                            try {
+                                fileout = openFileOutput("mytextfile.txt", MODE_APPEND);
+                                OutputStreamWriter outputWriter = new OutputStreamWriter(fileout);
+                                outputWriter.write(data.get("id").toString());
+                                Log.d("opening", "file");
+                                outputWriter.close();
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
-                        FileOutputStream fileout= null;
-                        try {
-                            fileout = openFileOutput("mytextfile.txt",MODE_APPEND);
-                            OutputStreamWriter outputWriter=new OutputStreamWriter(fileout);
-                            outputWriter.write(data.get("id").toString());
-                            Log.d("opening","file");
-                            outputWriter.close();
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    },
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            VolleyLog.e("Error: ", error.getMessage());
                         }
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        VolleyLog.e("Error: ", error.getMessage());
-                    }
-                });
+                    });
 
-        Appcontroller.getInstance().addToRequestQueue(req);
+            Appcontroller.getInstance().addToRequestQueue(req);
+        }
+        //else
+        //no internet so some error shown
     }
 }
