@@ -2,6 +2,7 @@ package com.example.forest;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import com.example.forest.Connectivity;
 import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -22,8 +23,13 @@ import com.hudomju.swipe.SwipeToDismissTouchListener;
 import com.hudomju.swipe.adapter.ListViewAdapter;
 import com.hudomju.swipe.adapter.RecyclerViewAdapter;
 
+import java.io.BufferedReader;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -44,6 +50,10 @@ public class TaskActivity extends AppCompatActivity {
     public Adapter adapter;
     public ArrayList<Model> modelArrayList;
     public JSONArray data_array=new JSONArray();
+    public JSONArray cache=new JSONArray();
+    public int flag=0,flag1=0;
+
+    Connectivity con=new Connectivity();
 
     private String urlJsonArry = "https://forestweb.herokuapp.com/apptask";
     private String urltask = "https://forestweb.herokuapp.com/gettask";
@@ -65,25 +75,105 @@ public class TaskActivity extends AppCompatActivity {
         lv = (ListView) findViewById(R.id.listview);
         modelArrayList=populateList();
         Log.d("before",modelArrayList.toString());
+        Log.d("internet",String.valueOf(con.isConnected(this)));
 
-        new CountDownTimer(3000, 1000) {
+        if(con.isConnected(this))
+        {
+            new CountDownTimer(3000,1000){
+                //send tasks from cache
+                @Override
+                public void onTick(long millisUntilFinished) {
+                    try {
+                        if(flag1==0) {
+                            String data = readFromFile("cache.txt");
+                            Log.d("cache data", data);
+                            if (data.length() != 0) {
+                                cache = new JSONArray(data);
+                                JsonArrayRequest req = new JsonArrayRequest(Request.Method.POST, urlJsonArry, cache,
+                                        new Response.Listener<JSONArray>() {
+                                            @Override
+                                            public void onResponse(JSONArray response) {
 
-            public void onTick(long millisUntilFinished) {
-                Log.d("wait","wait function");
-                try {
-                    modelArrayList=makeJsonArrayRequest();
-                } catch (JSONException e) {
-                    e.printStackTrace();
+                                            }
+                                        }, new Response.ErrorListener() {
+                                    @Override
+                                    public void onErrorResponse(VolleyError error) {
+                                        VolleyLog.d(TAG, "Error: " + error.getMessage());
+                                    }
+                                });
+                                Appcontroller.getInstance().addToRequestQueue(req);
+                            }
+                        }
+                        flag1=1;
+                    }catch (JSONException e) {
+                        e.printStackTrace();
+                    }
                 }
-                Log.d("hello",modelArrayList.toString());
-            }
 
-            public void onFinish() {
+                @Override
+                public void onFinish() {
+                    try {
+                        OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput("cache.txt", MODE_PRIVATE));
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+
+                    new CountDownTimer(3000, 1000) {
+                        //get new task
+
+                        public void onTick(long millisUntilFinished) {
+                            if (flag==0){
+                                Log.d("wait","wait function");
+
+                                Log.d("wait","wait function continue");
+                                try {
+                                    modelArrayList=makeJsonArrayRequest();
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                }
+                                Log.d("hello",modelArrayList.toString());
+                            }
+                            flag=1;
+                        }
+
+                        public void onFinish() {
 //                adapter = new Adapter(this,modelArrayList);
 //                lv.setAdapter(adapter);
-                next();
+                            next();
+                        }
+                    }.start();
+
+                }
+            }.start();
+
+        }
+        else{
+            //Offline
+            String data=readFromFile("tasks.txt");
+            final ArrayList<Model> list = new ArrayList<>();
+            Log.d("from cache",data);
+            try {
+                JSONArray tasks = new JSONArray(data);
+
+                Log.d("list",tasks.toString());
+
+                for(int i = 0; i < tasks.length(); i++){
+                    Model model = new Model();
+                    JSONObject curr = tasks.getJSONObject(i);
+                    model.setName(curr.getString("task_info"));
+                    list.add(model);
+                }
+
+                Log.d("add list",list.toString());
+                data_array=tasks;
+                modelArrayList=list;
             }
-        }.start();
+            catch(JSONException e){
+                e.printStackTrace();
+            }
+            next();
+        }
+
 //        adapter = new Adapter(this,modelArrayList);
 //        lv.setAdapter(adapter);
 //
@@ -117,6 +207,8 @@ public class TaskActivity extends AppCompatActivity {
     }
 
     public void next(){
+        Log.d("check list",modelArrayList.toString());
+        //if list is empty display no task
 
         adapter = new Adapter(this,modelArrayList);
         lv.setAdapter(adapter);
@@ -202,6 +294,7 @@ public class TaskActivity extends AppCompatActivity {
                         try {
 //                            JSONObject jsonObject = new JSONObject();
 //                            jsonObject.put("task", response.toString());
+                            writeToFile(response.toString());
 
                             JSONArray tasks = new JSONArray(response.toString());
 
@@ -237,30 +330,108 @@ public class TaskActivity extends AppCompatActivity {
     }
 
     private void sendrequest(int i) throws JSONException {
-        JSONObject rem= (JSONObject) data_array.get(i);
-        rem.remove("status");
-        rem.put("status","complete");
-        JsonObjectRequest req=new JsonObjectRequest(urlJsonArry,rem,
-                new Response.Listener<JSONObject>(){
-                    @Override
-                    public void onResponse(JSONObject data){
-                        Log.d("response",data.toString());
-                    }
-                },
-                new Response.ErrorListener() {
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        VolleyLog.d(TAG, "Error: " + error.getMessage());
-                        Toast.makeText(getApplicationContext(),
-                                error.getMessage(), Toast.LENGTH_SHORT).show();
-//                hidepDialog();
-                    }
-                });
+        if(con.isConnected(this)) {
+            JSONObject rem = (JSONObject) data_array.get(i);
+            rem.remove("status");
+            rem.put("status", "complete");
+            JsonObjectRequest req = new JsonObjectRequest(urlJsonArry, rem,
+                    new Response.Listener<JSONObject>() {
+                        @Override
+                        public void onResponse(JSONObject data) {
+                            Log.d("response", data.toString());
+                        }
+                    },
+                    new Response.ErrorListener() {
+                        @Override
+                        public void onErrorResponse(VolleyError error) {
+                            VolleyLog.d(TAG, "Error: " + error.getMessage());
+                            Toast.makeText(getApplicationContext(),
+                                    error.getMessage(), Toast.LENGTH_SHORT).show();
+                            //                hidepDialog();
+                        }
+                    });
+            // Adding request to request queue
+            Appcontroller.getInstance().addToRequestQueue(req);
+        }
 
-        // Adding request to request queue
-        Appcontroller.getInstance().addToRequestQueue(req);
+        Connectivity con=new Connectivity();
+        if(!con.isConnected(this))
+        {
+            JSONObject rem = (JSONObject) data_array.get(i);
+            rem.remove("status");
+            rem.put("status", "complete");
+            cache.put(rem);
+            writeToFilecache(cache.toString());
+        }
+
+        int len=data_array.length();
+        JSONArray temp=new JSONArray();
+        for (int x=0;x<len;x++)
+        {
+            //Excluding the item at position
+            if (x != i)
+            {
+                temp.put(data_array.get(x));
+            }
+        }
+        data_array=temp;
+        writeToFile(data_array.toString());
+
+
         Log.d("function",modelArrayList.toString());
 
+    }
+
+    private void writeToFile(String data) {
+        try {
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput("tasks.txt", MODE_PRIVATE));
+            outputStreamWriter.write(data);
+            outputStreamWriter.close();
+        }
+        catch (IOException e) {
+            Log.e("Exception", "File write failed: " + e.toString());
+        }
+    }
+
+    private void writeToFilecache(String data) {
+        try {
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput("cache.txt", MODE_PRIVATE));
+            outputStreamWriter.write(data);
+            outputStreamWriter.close();
+        }
+        catch (IOException e) {
+            Log.e("Exception", "File write failed: " + e.toString());
+        }
+    }
+
+    private String readFromFile(String file) {
+
+        String ret = "";
+
+        try {
+            InputStream inputStream = openFileInput(file);
+
+            if ( inputStream != null ) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+                String receiveString = "";
+                StringBuilder stringBuilder = new StringBuilder();
+
+                while ( (receiveString = bufferedReader.readLine()) != null ) {
+                    stringBuilder.append(receiveString);
+                }
+
+                inputStream.close();
+                ret = stringBuilder.toString();
+            }
+        }
+        catch (FileNotFoundException e) {
+            Log.e("login activity", "File not found: " + e.toString());
+        } catch (IOException e) {
+            Log.e("login activity", "Can not read file: " + e.toString());
+        }
+
+        return ret;
     }
 
 }
