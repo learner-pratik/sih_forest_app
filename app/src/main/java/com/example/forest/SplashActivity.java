@@ -21,15 +21,17 @@ public class SplashActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash);
         animation = AnimationUtils.loadAnimation(this,R.anim.a1);
-        tvSplash=findViewById(R.id.tvSplash);
+        //tvSplash=findViewById(R.id.tvSplash);
 
-        //tvSplash.startAnimation(animation);
+
+//        tvSplash.startAnimation(animation);
 
 
         new  Thread(new Runnable() {
             @Override
             public void run() {
                 Log.d("opening","app");
+                int flag=0;
 
 //                try {
 //                    FileOutputStream fileout=openFileOutput("mytextfile.txt", MODE_PRIVATE);
@@ -78,9 +80,10 @@ public class SplashActivity extends AppCompatActivity {
                     InputRead.close();
 //                    tvSplash.setText(s);
 
-                    Intent a = new Intent(SplashActivity.this,HomeActivity.class);
-                    startActivity(a);
-                    finish();
+//                    Intent a = new Intent(SplashActivity.this,HomeActivity.class);
+//                    startActivity(a);
+//                    finish();
+                    flag=1;
 
 
                 } catch (Exception e) {
@@ -91,9 +94,9 @@ public class SplashActivity extends AppCompatActivity {
 //                        outputWriter.write("open");
 //                        Log.d("opening","file");
 //                        outputWriter.close();
-                        Intent a = new Intent(SplashActivity.this,MainActivity.class);
-                        startActivity(a);
-                        finish();
+//                        Intent a = new Intent(SplashActivity.this,MainActivity.class);
+//                        startActivity(a);
+//                        finish();
 
                         //display file saved message
 //                        Toast.makeText(getBaseContext(), "File saved successfully!",
@@ -110,6 +113,16 @@ public class SplashActivity extends AppCompatActivity {
                 }
                 catch (InterruptedException e) {
                     e.printStackTrace();
+                }
+                if (flag==1){
+                    Intent a = new Intent(SplashActivity.this,HomeActivity.class);
+                    startActivity(a);
+                    finish();
+                }
+                else{
+                    Intent a = new Intent(SplashActivity.this,MainActivity.class);
+                    startActivity(a);
+                    finish();
                 }
 //                Intent a = new Intent(SplashActivity.this,MainActivity.class);
 //                startActivity(a);

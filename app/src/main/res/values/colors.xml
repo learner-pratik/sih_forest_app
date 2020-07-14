@@ -8,5 +8,6 @@
     <color name="circlebackground1">#26F85B</color>
     <color name="circlebackground2">#71CEDA</color>
     <color name="circlebackground3">#FFE607</color>
+    <color name="circlebackground4">#F11D1D</color>
     <color name="background">#71B917</color>
 </resources>

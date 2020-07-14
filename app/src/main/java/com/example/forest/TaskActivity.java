@@ -209,9 +209,14 @@ public class TaskActivity extends AppCompatActivity {
     public void next(){
         Log.d("check list",modelArrayList.toString());
         //if list is empty display no task
-
+        try {
         adapter = new Adapter(this,modelArrayList);
-        lv.setAdapter(adapter);
+            lv.setAdapter(adapter);
+        } catch (Exception e) {
+            e.printStackTrace();
+            Toast.makeText(this, "No Task" , LENGTH_SHORT).show();
+        }
+
 
         final SwipeToDismissTouchListener<ListViewAdapter> touchListener =
                 new SwipeToDismissTouchListener<>(
