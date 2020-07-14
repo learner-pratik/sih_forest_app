@@ -10,7 +10,7 @@ import android.widget.LinearLayout;
 
 public class HomeActivity extends AppCompatActivity {
     //Button btnMap,btnPrediction,btnTask;
-    LinearLayout cvMap,cvPrediction,cvTask;
+    LinearLayout cvMap,cvPrediction,cvTask,cvAlert;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -19,6 +19,7 @@ public class HomeActivity extends AppCompatActivity {
         cvMap=findViewById(R.id.cvMap);
         cvPrediction=findViewById(R.id.cvPrediction);
         cvTask=findViewById(R.id.cvTask);
+        cvAlert=findViewById(R.id.cvAlert);
 
         cvTask.setOnClickListener(new View.OnClickListener() {
             @Override

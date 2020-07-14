@@ -4,6 +4,7 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
@@ -15,6 +16,7 @@ import com.android.volley.Response;
 import com.android.volley.VolleyError;
 import com.android.volley.VolleyLog;
 import com.android.volley.toolbox.JsonObjectRequest;
+import com.google.android.gms.common.internal.safeparcel.SafeParcelable;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -24,7 +26,6 @@ import java.io.OutputStreamWriter;
 import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
-    public boolean map;
     EditText etUsername,etPassword;
     Button btnLogin;
     private String urlJsonArry = "https://forestweb.herokuapp.com/applogin";
@@ -41,26 +42,38 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 try {
+                  String username=etUsername.getText().toString().trim();
+                   String password=etPassword.getText().toString().trim();
+
+                    if(TextUtils.isEmpty(username)){
+                        Toast.makeText(MainActivity.this, "Please Enter Username", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    if(TextUtils.isEmpty(password)){
+                        Toast.makeText(MainActivity.this, "Please Enter Password", Toast.LENGTH_SHORT).show();
+                      return;
+                  }
+
                     sendrequest(etUsername,etPassword);
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-                Intent a = new Intent(MainActivity.this,HomeActivity.class);
-                startActivity(a);
+             //   Intent a = new Intent(MainActivity.this,HomeActivity.class);
+             //   startActivity(a);
 
             }
         });
     }
 
-    private void sendrequest(EditText user,EditText pass) throws JSONException {
+    private void sendrequest(EditText user, EditText pass) throws JSONException {
         Connectivity con =new Connectivity();
         if(con.isConnected(this)) {
-            JSONObject rem = new JSONObject();
+            final JSONObject rem = new JSONObject();
 //        rem.remove("status");
             rem.put("username", user.getText());
             rem.put("password", pass.getText());
             Log.d("Param", rem.toString());
-            JsonObjectRequest req = new JsonObjectRequest(Request.Method.POST, urlJsonArry, rem,
+            final JsonObjectRequest req = new JsonObjectRequest(Request.Method.POST, urlJsonArry, rem,
                     new Response.Listener<JSONObject>() {
                         @Override
                         public void onResponse(JSONObject data) {
@@ -68,6 +81,17 @@ public class MainActivity extends AppCompatActivity {
                             try {
                                 Log.d("response", data.get("id").toString());
                                 //if id=='-1' error function
+
+                                    if (data.get("id").equals("-1")) {
+                                        Toast.makeText(MainActivity.this, "Username or Password is incorrect", Toast.LENGTH_SHORT).show();
+                                        etUsername.setText("");
+                                        etPassword.setText("");
+                                    } else {
+
+                                        Intent a = new Intent(MainActivity.this,HomeActivity.class);
+                                        startActivity(a);
+
+                                    }
                             } catch (JSONException e) {
                                 e.printStackTrace();
                             }
