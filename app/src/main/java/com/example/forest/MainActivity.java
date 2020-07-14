@@ -24,6 +24,7 @@ import java.io.OutputStreamWriter;
 import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
+    public boolean map;
     EditText etUsername,etPassword;
     Button btnLogin;
     private String urlJsonArry = "https://forestweb.herokuapp.com/applogin";

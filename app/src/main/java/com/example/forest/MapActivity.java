@@ -1,12 +1,15 @@
 package com.example.forest;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.drawable.Drawable;
+import android.location.Location;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.os.Looper;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -15,6 +18,11 @@ import com.google.android.gms.tasks.Task;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.mapbox.android.core.location.LocationEngine;
+import com.mapbox.android.core.location.LocationEngineCallback;
+import com.mapbox.android.core.location.LocationEngineProvider;
+import com.mapbox.android.core.location.LocationEngineRequest;
+import com.mapbox.android.core.location.LocationEngineResult;
 import com.mapbox.android.core.permissions.PermissionsListener;
 import com.mapbox.android.core.permissions.PermissionsManager;
 import com.example.forest.R;
@@ -28,6 +36,7 @@ import com.mapbox.mapboxsdk.maps.MapboxMap;
 import com.mapbox.mapboxsdk.maps.OnMapReadyCallback;
 import com.mapbox.mapboxsdk.maps.Style;
 
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -65,7 +74,7 @@ import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconSize;
 
 
-public class MapActivity extends AppCompatActivity {
+public class MapActivity extends AppCompatActivity implements PermissionsListener {
     private static final String TAG = "SpaceStationActivity";
     Map<String, List<String>> h = new HashMap<String, List<String>>();
     String value1;
@@ -83,6 +92,13 @@ public class MapActivity extends AppCompatActivity {
     private MapboxMap map;
 
     int tm=0;
+
+    private PermissionsManager permissionsManager;
+    private LocationEngine locationEngine;
+    private static final long DEFAULT_INTERVAL_IN_MILLISECONDS = 1000L;
+    private static final long DEFAULT_MAX_WAIT_TIME = DEFAULT_INTERVAL_IN_MILLISECONDS * 5;
+    private LocationChangeListeningActivityLocationCallback callback =
+            new LocationChangeListeningActivityLocationCallback(this);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -117,6 +133,7 @@ public class MapActivity extends AppCompatActivity {
                 mapboxMap.setStyle(Style.SATELLITE_STREETS, new Style.OnStyleLoaded() {
                     @Override
                     public void onStyleLoaded(@NonNull Style style) {
+                        enableLocationComponent(style);
                         initSpaceStationSymbolLayer(style);
                         callApi();
                         Toast.makeText(MapActivity.this, R.string.space_station_toast, Toast.LENGTH_SHORT).show();
@@ -124,6 +141,45 @@ public class MapActivity extends AppCompatActivity {
                 });
             }
         });
+    }
+
+    @SuppressLint("MissingPermission")
+    private void enableLocationComponent(@NonNull Style loadedMapStyle) {
+        if (PermissionsManager.areLocationPermissionsGranted(this)){
+            LocationComponent locationComponent=map.getLocationComponent();
+            // Activate with a built LocationComponentActivationOptions object
+            locationComponent.activateLocationComponent(
+                    LocationComponentActivationOptions
+                            .builder(this, loadedMapStyle)
+                            .build());
+
+            // Enable to make component visible
+            locationComponent.setLocationComponentEnabled(true);
+
+            // Set the component's camera mode
+            locationComponent.setCameraMode(CameraMode.TRACKING);
+
+            // Set the component's render mode
+            locationComponent.setRenderMode(RenderMode.COMPASS);
+
+            initLocationEngine();
+        }
+        else {
+            permissionsManager=new PermissionsManager((PermissionsListener) this);
+            permissionsManager.requestLocationPermissions(this);
+        }
+    }
+
+    private void initLocationEngine() {
+        locationEngine= LocationEngineProvider.getBestLocationEngine(this);
+        LocationEngineRequest locationEngineRequest=new LocationEngineRequest.
+                Builder(DEFAULT_INTERVAL_IN_MILLISECONDS)
+                .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
+                .setMaxWaitTime(DEFAULT_MAX_WAIT_TIME)
+                .build();
+
+        locationEngine.requestLocationUpdates(locationEngineRequest,callback, Looper.getMainLooper());
+        locationEngine.getLastLocation(callback);
     }
 
 
@@ -297,5 +353,67 @@ public class MapActivity extends AppCompatActivity {
         }
         r.add(obj.toString());
         return r;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        permissionsManager.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    @Override
+    public void onExplanationNeeded(List<String> permissionsToExplain) {
+        Toast.makeText(this, "Plz Enable the permissions...", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onPermissionResult(boolean granted) {
+        if (granted){
+            map.getStyle(new Style.OnStyleLoaded(){
+                @Override
+                public void onStyleLoaded(@NonNull Style style) {
+                    enableLocationComponent(style);
+                }
+            });
+        }
+        else{
+            Toast.makeText(this, "Permissions are not granted...", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private static class LocationChangeListeningActivityLocationCallback
+            implements LocationEngineCallback<LocationEngineResult>{
+        private final WeakReference<MapActivity> activityWeakReference;
+
+        private LocationChangeListeningActivityLocationCallback(MapActivity activity) {
+            this.activityWeakReference= new WeakReference<>(activity);
+        }
+        @Override
+        public void onSuccess(LocationEngineResult result) {
+            MapActivity activity=activityWeakReference.get();
+            if (activity!=null){
+                Location location=result.getLastLocation();
+                if (location==null){
+                    return;
+                }
+//                Toast.makeText(activity, "Location Co-ordinates: "+location.getLatitude()+
+//                                " & "+location.getLongitude()+" & Thread name: "+Thread.currentThread().getName(),
+//                                Toast.LENGTH_SHORT).show();
+//                new MainActivity().AddLocationUpdatetoFirebase(location);
+
+                //AddLocationUpdatetoFirebase(location);
+                if (activity.map!=null&&result.getLastLocation()!=null){
+                    activity.map.getLocationComponent().forceLocationUpdate(result.getLastLocation());
+                }
+            }
+        }
+
+        @Override
+        public void onFailure(@NonNull Exception exception) {
+            MapActivity activity=activityWeakReference.get();
+            if (activity!=null){
+                Toast.makeText(activity, exception.getLocalizedMessage(),
+                        Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }
