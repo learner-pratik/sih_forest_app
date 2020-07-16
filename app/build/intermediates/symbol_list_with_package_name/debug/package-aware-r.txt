@@ -1969,6 +1969,7 @@ layout activity_home
 layout activity_location
 layout activity_main
 layout activity_map
+layout activity_prediction
 layout activity_splash
 layout activity_task
 layout custom_dialog

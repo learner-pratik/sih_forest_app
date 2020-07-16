@@ -2,6 +2,7 @@ package com.example.forest;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
@@ -40,7 +41,7 @@ public class HomeActivity extends AppCompatActivity {
         cvPrediction.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent a = new Intent(HomeActivity.this,LocationActivity.class);
+                Intent a = new Intent(HomeActivity.this,Prediction.class);
                 startActivity(a);
             }
         });
