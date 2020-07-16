@@ -37,5 +37,13 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
 
+        cvPrediction.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent a = new Intent(HomeActivity.this,LocationActivity.class);
+                startActivity(a);
+            }
+        });
+
     }
 }
