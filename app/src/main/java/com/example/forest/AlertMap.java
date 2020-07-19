@@ -1,10 +1,17 @@
 package com.example.forest;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Intent;
+import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 
+import com.mapbox.geojson.Feature;
+import com.mapbox.geojson.FeatureCollection;
+import com.mapbox.geojson.Point;
 import com.mapbox.mapboxsdk.Mapbox;
 
 import com.mapbox.mapboxsdk.maps.MapView;
@@ -17,9 +24,13 @@ import java.io.IOException;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
+
 import com.mapbox.mapboxsdk.style.expressions.Expression;
 import com.mapbox.mapboxsdk.style.layers.FillLayer;
 import com.mapbox.mapboxsdk.style.layers.LineLayer;
+import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
 
@@ -29,13 +40,17 @@ import static com.mapbox.mapboxsdk.style.expressions.Expression.literal;
 import static com.mapbox.mapboxsdk.style.expressions.Expression.rgba;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.fillOpacity;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconAllowOverlap;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconIgnorePlacement;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconImage;
+import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.iconSize;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineColor;
 import static com.mapbox.mapboxsdk.style.layers.PropertyFactory.lineWidth;
 
+import android.os.Bundle;
+import android.util.Log;
 
-
-
-public class Prediction extends AppCompatActivity {
+public class AlertMap extends AppCompatActivity {
 
     private MapView mapView;
     private MapboxMap map;
@@ -43,7 +58,7 @@ public class Prediction extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //setContentView(R.layout.activity_prediction);
+        //setContentView(R.layout.activity_alert_map);
 
         Mapbox.getInstance(this, getString(R.string.mapbox_access_token));
 
@@ -62,35 +77,35 @@ public class Prediction extends AppCompatActivity {
                 mapboxMap.setStyle(Style.SATELLITE_STREETS, new Style.OnStyleLoaded() {
                     @Override
                     public void onStyleLoaded(@NonNull Style style) {
-                        try {
-                            initpredLayer(style);
-                        } catch (IOException | URISyntaxException e) {
-                            e.printStackTrace();
-                        }
+                        initalertLayer(style);
                     }
                 });
             }
         });
-
     }
 
-    private void initpredLayer(@NonNull Style style) throws IOException, URISyntaxException {
+    private void initalertLayer(@NonNull Style style) {
+        // h<key,value> --> key = animal_type --> value = List[animal id]
+        Intent intent = getIntent();
+        Bundle b = getIntent().getExtras();
+        double lat = b.getDouble("latitude");
+        double lon = b.getDouble("longitude");
 
-        GeoJsonSource hood = new GeoJsonSource("hood_layer",new URI("https://forestweb.herokuapp.com/geojson"));
-        style.addSource(hood);
-
-        FillLayer hoodArea = new FillLayer("hood-fill", "hood_layer");
-        LineLayer boundary = new LineLayer("b-line","hood_layer");
-        hoodArea.setProperties(
-                fillColor(Expression.match(Expression.get("AREA_SHORT_CODE"),literal(1),rgba(255, 0, 0, 1.0f),literal(2),rgba(240, 255, 0, 1.0f),rgba(0.0f, 255.0f, 0.0f, 1.0f))),
-                fillOpacity(0.4f)
-        );
-        boundary.setProperties(
-                lineWidth(3.5f),
-                lineColor("#00ffff")
-        );
-        style.addLayer(hoodArea);
-        style.addLayer(boundary);
-
+        int d_alert = 0;
+        d_alert = getResources().getIdentifier("i_elephant", "drawable", getPackageName());
+        style.addImage("icon0", BitmapFactory.decodeResource(this.getResources(), d_alert));
+        style.addSource(new GeoJsonSource("sid_alert"));
+        style.addLayer(new SymbolLayer("layer-id", "sid_alert").withProperties(
+                iconImage("icon0"),
+                iconIgnorePlacement(true),
+                iconAllowOverlap(true),
+                iconSize(.02f)
+        ));
+        GeoJsonSource alertSource = map.getStyle().getSourceAs("sid_alert");
+        if (alertSource != null) {
+            alertSource.setGeoJson(FeatureCollection.fromFeature(
+                    Feature.fromGeometry(Point.fromLngLat(lon,lat))
+            ));
+        }
     }
 }

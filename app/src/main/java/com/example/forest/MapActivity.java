@@ -1,11 +1,14 @@
 package com.example.forest;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Bundle;
+
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -63,6 +66,7 @@ import com.mapbox.mapboxsdk.style.layers.SymbolLayer;
 import com.mapbox.mapboxsdk.style.sources.GeoJsonSource;
 
 
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import retrofit2.Call;
 
@@ -91,8 +95,9 @@ public class MapActivity extends AppCompatActivity implements PermissionsListene
     private MapView mapView;
     private MapboxMap map;
 
-    int tm=0;
+    int tm = 0;
 
+    public static final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
     private PermissionsManager permissionsManager;
     private LocationEngine locationEngine;
     private static final long DEFAULT_INTERVAL_IN_MILLISECONDS = 1000L;
@@ -105,12 +110,12 @@ public class MapActivity extends AppCompatActivity implements PermissionsListene
         super.onCreate(savedInstanceState);
 
         Intent intent = getIntent();
-        HashMap<String, Object> temph = (HashMap<String, Object>)intent.getSerializableExtra("map");
+        HashMap<String, Object> temph = (HashMap<String, Object>) intent.getSerializableExtra("map");
         Iterator it = temph.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
+            Map.Entry pair = (Map.Entry) it.next();
             Log.d("this is last hope", (String) pair.getKey());
-            h.put((String) pair.getKey(),convertObjectToList(pair.getValue()));
+            h.put((String) pair.getKey(), convertObjectToList(pair.getValue()));
             System.out.println(pair.getKey() + " = " + pair.getValue());
             it.remove(); // avoids a ConcurrentModificationException
         }
@@ -145,8 +150,8 @@ public class MapActivity extends AppCompatActivity implements PermissionsListene
 
     @SuppressLint("MissingPermission")
     private void enableLocationComponent(@NonNull Style loadedMapStyle) {
-        if (PermissionsManager.areLocationPermissionsGranted(this)){
-            LocationComponent locationComponent=map.getLocationComponent();
+        if (PermissionsManager.areLocationPermissionsGranted(this)) {
+            LocationComponent locationComponent = map.getLocationComponent();
             // Activate with a built LocationComponentActivationOptions object
             locationComponent.activateLocationComponent(
                     LocationComponentActivationOptions
@@ -163,22 +168,36 @@ public class MapActivity extends AppCompatActivity implements PermissionsListene
             locationComponent.setRenderMode(RenderMode.COMPASS);
 
             initLocationEngine();
-        }
-        else {
-            permissionsManager=new PermissionsManager((PermissionsListener) this);
+        } else {
+            permissionsManager = new PermissionsManager((PermissionsListener) this);
             permissionsManager.requestLocationPermissions(this);
         }
     }
 
     private void initLocationEngine() {
-        locationEngine= LocationEngineProvider.getBestLocationEngine(this);
-        LocationEngineRequest locationEngineRequest=new LocationEngineRequest.
+        locationEngine = LocationEngineProvider.getBestLocationEngine(this);
+        LocationEngineRequest locationEngineRequest = new LocationEngineRequest.
                 Builder(DEFAULT_INTERVAL_IN_MILLISECONDS)
                 .setPriority(LocationEngineRequest.PRIORITY_HIGH_ACCURACY)
                 .setMaxWaitTime(DEFAULT_MAX_WAIT_TIME)
                 .build();
 
-        locationEngine.requestLocationUpdates(locationEngineRequest,callback, Looper.getMainLooper());
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            // TODO: Consider calling
+            //    ActivityCompat#requestPermissions
+            // here to request the missing permissions, and then overriding
+            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+            //                                          int[] grantResults)
+            // to handle the case where the user grants the permission. See the documentation
+            // for ActivityCompat#requestPermissions for more details.
+
+
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+                    MY_PERMISSIONS_REQUEST_LOCATION);
+            return;
+        }
+        locationEngine.requestLocationUpdates(locationEngineRequest, callback, Looper.getMainLooper());
         locationEngine.getLastLocation(callback);
     }
 
