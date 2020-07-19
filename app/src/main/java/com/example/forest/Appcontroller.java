@@ -1,6 +1,9 @@
 package com.example.forest;
 
 import android.app.Application;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -16,10 +19,28 @@ public class Appcontroller extends Application {
 
     private static Appcontroller mInstance;
 
+    public static final String CHANNEL_ID = "hunter";
+
     @Override
     public void onCreate() {
         super.onCreate();
         mInstance = this;
+        createNotificationChannel();
+    }
+
+    private void createNotificationChannel() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel alertChannel = new NotificationChannel(
+                    CHANNEL_ID,
+                    "Hunter Alert",
+                    NotificationManager.IMPORTANCE_HIGH
+            );
+            alertChannel.setDescription("Hunter Spotted");
+
+            NotificationManager manager = getSystemService(NotificationManager.class);
+            manager.createNotificationChannel(alertChannel);
+        }
     }
 
     public static synchronized Appcontroller getInstance() {
