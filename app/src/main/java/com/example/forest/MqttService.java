@@ -13,6 +13,9 @@ import androidx.annotation.Nullable;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Splitter;
+
 import org.eclipse.paho.android.service.MqttAndroidClient;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
@@ -34,10 +37,15 @@ import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static com.example.forest.Appcontroller.CHANNEL_ID;
+import static com.example.forest.HomeActivity.animal_info;
+import static com.example.forest.HomeActivity.animal_location_info;
 
 public class MqttService extends Service {
+    private static final String TAG = "ServiceMqtt";
+
     public static final String ipAddress = "192.168.0.104";
 
     private final String protocol = "tcp";
@@ -45,9 +53,10 @@ public class MqttService extends Service {
     private final String url = protocol + "://" + ipAddress + ":" + port;
 
     private final String hunter_topic = "forest/hunter";
+    private final String camera_topic = "forest/camera-alert";
+    private final String map_alert_topic = "forest/map-alert/#";
     private final int qos = 1;
 
-    private static final String TAG = "ServiceMqtt";
     private final String clientId = MqttClient.generateClientId();
     private final MqttAndroidClient client =
             new MqttAndroidClient(this, url, clientId);
@@ -60,6 +69,8 @@ public class MqttService extends Service {
     private BufferedReader reader;
     OutputStreamWriter file_writer;
     BufferedWriter buffered_writer;
+
+    ObjectMapper mapper = new ObjectMapper();
 
     @Nullable
     @Override
@@ -85,7 +96,9 @@ public class MqttService extends Service {
                     // We are connected
                     Log.d(TAG, "onSuccess");
                     try {
-                        IMqttToken subToken = client.subscribe(hunter_topic, qos);
+                        String[] topics = {hunter_topic, camera_topic, map_alert_topic};
+                        int[] qos_array = {1, 1, 1};
+                        IMqttToken subToken = client.subscribe(topics, qos_array);
                         subToken.setActionCallback(new IMqttActionListener() {
                             @Override
                             public void onSuccess(IMqttToken asyncActionToken) {
@@ -126,15 +139,34 @@ public class MqttService extends Service {
             @Override
             public void messageArrived(String topic, MqttMessage message) throws Exception {
                 Log.d(TAG, "message arrived");
-                writeToFile(message.toString()+"\n");
+                if (topic.contains("forest/map-alert/")) {
+                    String[] content = topic.split("/");
+                    if (content[2].equals("animals")) {
+                        Log.d(TAG, message.toString());
+                        animal_info = mapper.readValue(message.toString(), Map.class);
+                    } else {
+                        Log.d(TAG, message.toString());
+                        animal_location_info = mapper.readValue(message.toString(), Map.class);
+                    }
+                } else {
+                    String[] values = message.toString().split("/");
+                    List<String> list = new ArrayList<>();
+                    list.add(values[1]);
+                    list.add(values[2]);
 
-                String[] values = message.toString().split("/");
-                List<String> list = new ArrayList<>();
-                list.add(values[1]);
-                list.add(values[2]);
-                AlertActivity.map.put(values[0], list);
-                String[] msg = values[0].split("-");
-                sendNotification(msg[1]);
+                    Log.d(TAG, topic);
+                    if (topic.equals("forest/hunter")) {
+                        Log.d(TAG, "written to hunter maps");
+                        writeToFile(message.toString()+"\n");
+                        AlertActivity.map.put(values[0], list);
+                    } else {
+                        Log.d(TAG, "written to camera maps");
+                        writeToFile(message.toString()+"/c"+"\n");
+                        AlertActivity.map_c.put(values[0], list);
+                    }
+                    String[] msg = values[0].split("-");
+                    sendNotification(msg[1]);
+                }
             }
 
             @Override

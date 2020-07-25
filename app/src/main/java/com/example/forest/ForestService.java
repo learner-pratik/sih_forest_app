@@ -112,6 +112,11 @@ public class ForestService extends Service {
                     System.out.println("error occured");
                     e.printStackTrace();
                 }
+                try {
+                    client.disconnect();
+                } catch (MqttException e) {
+                    e.printStackTrace();
+                }
             }
 
             @Override

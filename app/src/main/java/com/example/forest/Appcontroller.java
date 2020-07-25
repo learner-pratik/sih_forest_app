@@ -3,6 +3,8 @@ package com.example.forest;
 import android.app.Application;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.media.AudioAttributes;
+import android.net.Uri;
 import android.os.Build;
 import android.text.TextUtils;
 import android.util.Log;
@@ -33,10 +35,17 @@ public class Appcontroller extends Application {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel alertChannel = new NotificationChannel(
                     CHANNEL_ID,
-                    "Hunter Alert",
+                    "Forest Alerts",
                     NotificationManager.IMPORTANCE_HIGH
             );
-            alertChannel.setDescription("Hunter Spotted");
+            AudioAttributes attributes = new AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_NOTIFICATION_EVENT).build();
+            alertChannel.setDescription("This channel is used to show high alerts of hunter spottings in the forest");
+            alertChannel.setImportance(NotificationManager.IMPORTANCE_HIGH);
+            alertChannel.setVibrationPattern(new long[] { 1000, 1000, 1000, 1000, 1000 });
+            alertChannel.setSound(Uri.parse("uri://sadfasdfasdf.mp3"), attributes);
+            alertChannel.setBypassDnd(true);
+            alertChannel.setShowBadge(true);
 
             NotificationManager manager = getSystemService(NotificationManager.class);
             manager.createNotificationChannel(alertChannel);

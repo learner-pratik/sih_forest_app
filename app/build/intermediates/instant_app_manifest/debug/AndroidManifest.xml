@@ -9,6 +9,15 @@
         android:minSdkVersion="16"
         android:targetSdkVersion="29" />
 
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
@@ -18,10 +27,6 @@
     <uses-feature
         android:name="android.hardware.wifi"
         android:required="false" />
-
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" /> <!-- Required for CrashReporterJobIntentService on API levels below 25 -->
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
 
     <application
         android:name="com.example.forest.Appcontroller"
@@ -34,12 +39,16 @@
         android:supportsRtl="true"
         android:testOnly="true"
         android:theme="@style/AppTheme" >
+        <activity android:name="com.example.forest.AlertMap" />
         <activity android:name="com.example.forest.Prediction" />
         <activity android:name="com.example.forest.MainActivity" />
         <activity android:name="com.example.forest.LocationActivity" />
         <activity android:name="com.example.forest.TaskActivity" />
         <activity android:name="com.example.forest.MapActivity" />
         <activity android:name="com.example.forest.HomeActivity" />
+        <activity
+            android:name="com.example.forest.AlertActivity"
+            android:screenOrientation="portrait" />
         <activity android:name="com.example.forest.SplashActivity" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -48,6 +57,9 @@
             </intent-filter>
         </activity>
 
+        <service android:name="org.eclipse.paho.android.service.MqttService" />
+        <service android:name="com.example.forest.MqttService" />
+        <service android:name="com.example.forest.ForestService" />
         <service
             android:name="com.google.firebase.components.ComponentDiscoveryService"
             android:directBootAware="true"

@@ -14,6 +14,9 @@ import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 
+import java.util.List;
+import java.util.Map;
+
 public class HomeActivity extends AppCompatActivity {
     //Button btnMap,btnPrediction,btnTask;
     private static final String TAG = "HomeActivity";
@@ -21,6 +24,9 @@ public class HomeActivity extends AppCompatActivity {
     private static final int PERMISSIONS_REQUEST = 1;
     private static final String PERMISSION_LOCATION = Manifest.permission.ACCESS_FINE_LOCATION;
     public static boolean location_access = false;
+
+    public static Map<String, List<String>> animal_info;
+    public static Map<String, List<String>> animal_location_info;
 
     LinearLayout cvMap,cvPrediction,cvTask,cvAlert;
 
@@ -32,6 +38,15 @@ public class HomeActivity extends AppCompatActivity {
         cvPrediction=findViewById(R.id.cvPrediction);
         cvTask=findViewById(R.id.cvTask);
         cvAlert=findViewById(R.id.cvAlert);
+
+        if (hasPermission()) {
+            getCurrentLocation();
+        } else {
+            requestPermission();
+        }
+
+        startService(new Intent(getApplicationContext(), MqttService.class));
+        startService(new Intent(getApplicationContext(), ForestService.class));
 
         cvTask.setOnClickListener(new View.OnClickListener() {
             @Override
